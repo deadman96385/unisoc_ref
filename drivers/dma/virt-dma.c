@@ -89,6 +89,7 @@ static void vchan_complete(unsigned long arg)
 	struct virt_dma_desc *vd, *_vd;
 	struct dmaengine_desc_callback cb;
 	LIST_HEAD(head);
+	unsigned long flags;
 
 	spin_lock_irq(&vc->lock);
 	list_splice_tail_init(&vc->desc_completed, &head);
@@ -107,9 +108,11 @@ static void vchan_complete(unsigned long arg)
 		dmaengine_desc_get_callback(&vd->tx, &cb);
 
 		list_del(&vd->node);
-		if (dmaengine_desc_test_reuse(&vd->tx))
+		if (dmaengine_desc_test_reuse(&vd->tx)) {
+			spin_lock_irqsave(&vc->lock, flags);
 			list_add(&vd->node, &vc->desc_allocated);
-		else
+			spin_unlock_irqrestore(&vc->lock, flags);
+		} else
 			vc->desc_free(vd);
 
 		dmaengine_desc_callback_invoke(&cb, NULL);

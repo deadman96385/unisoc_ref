@@ -1729,7 +1729,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
 		    (!regset->active || regset->active(t->task, regset) > 0)) {
 			int ret;
 			size_t size = regset->n * regset->size;
-			void *data = kmalloc(size, GFP_KERNEL);
+			void *data = kzalloc(size, GFP_KERNEL);
 			if (unlikely(!data))
 				return 0;
 			ret = regset->get(t->task, regset,
@@ -2187,11 +2187,16 @@ static int check_corefile_limit(struct file *core_file, size_t corefile_size)
 	u64 avail_size = 0;
 	u64 total_size = 0;
 	int ret = 0;
+	struct inode *inode;
 
 	if (!core_file) {
 		printk(KERN_ERR "Get corefile error\n");
 		return -ENOENT;
 	}
+
+	inode = file_inode(core_file);
+	if (S_ISFIFO(inode->i_mode))
+		return 0;
 
 	ret = vfs_statfs(&core_file->f_path, &sfs);
 	if (ret < 0 || sfs.f_blocks == 0) {
