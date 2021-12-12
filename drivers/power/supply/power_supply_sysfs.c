@@ -43,7 +43,7 @@ static struct device_attribute power_supply_attrs[];
 static const char * const power_supply_type_text[] = {
 	"Unknown", "Battery", "UPS", "Mains", "USB",
 	"USB_DCP", "USB_CDP", "USB_ACA", "USB_C",
-	"USB_PD", "USB_PD_DRP", "BrickID"
+	"USB_PD", "USB_PD_DRP", "BrickID", "Wireless"
 };
 
 static const char * const power_supply_usb_type_text[] = {
@@ -121,6 +121,27 @@ static ssize_t power_supply_show_property(struct device *dev,
 	const ptrdiff_t off = attr - power_supply_attrs;
 	union power_supply_propval value;
 
+	memset(&value, 0, sizeof(value));
+	/*
+		an occasional crash!
+
+		exception stack:
+		[<        (ptrval)>] string+0x20/0x70
+		[<        (ptrval)>] sprintf+0x78/0xa0
+		[<        (ptrval)>] power_supply_show_property+0x23c/0x2e4
+		[<        (ptrval)>] power_supply_uevent+0xac/0x1e4
+		[<        (ptrval)>] dev_uevent+0x1e0/0x2b4
+		[<        (ptrval)>] uevent_show+0x9c/0x118
+		[<        (ptrval)>] dev_attr_show+0x38/0x70
+		[<        (ptrval)>] sysfs_kf_seq_show+0x98/0x110
+		[<        (ptrval)>] kernfs_seq_show+0x40/0x4c
+		[<        (ptrval)>] seq_read+0x188/0x484
+		[<        (ptrval)>] kernfs_fop_read+0x70/0x1b8
+		[<        (ptrval)>] __vfs_read+0x54/0x144
+		[<        (ptrval)>] vfs_read+0xa4/0x13c
+		[<        (ptrval)>] SyS_read+0x78/0xd8
+	*/
+
 	if (off == POWER_SUPPLY_PROP_TYPE) {
 		value.intval = psy->desc->type;
 	} else {
@@ -138,32 +159,46 @@ static ssize_t power_supply_show_property(struct device *dev,
 		}
 	}
 
-	if (off == POWER_SUPPLY_PROP_STATUS)
+	if (off == POWER_SUPPLY_PROP_STATUS) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_status_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_status_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_CHARGE_TYPE)
+	} else if (off == POWER_SUPPLY_PROP_CHARGE_TYPE) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_charge_type_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_charge_type_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_HEALTH)
+	} else if (off == POWER_SUPPLY_PROP_HEALTH) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_health_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_health_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_TECHNOLOGY)
+	} else if (off == POWER_SUPPLY_PROP_TECHNOLOGY) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_technology_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_technology_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_CAPACITY_LEVEL)
+	} else if (off == POWER_SUPPLY_PROP_CAPACITY_LEVEL) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_capacity_level_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_capacity_level_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_TYPE)
+	} else if (off == POWER_SUPPLY_PROP_TYPE) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_type_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_type_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_USB_TYPE)
+	} else if (off == POWER_SUPPLY_PROP_USB_TYPE)
 		return power_supply_show_usb_type(dev, psy->desc->usb_types,
 						  psy->desc->num_usb_types,
 						  &value, buf);
-	else if (off == POWER_SUPPLY_PROP_SCOPE)
+	else if (off == POWER_SUPPLY_PROP_SCOPE) {
+		if (value.intval < 0 || value.intval >= sizeof(power_supply_scope_text)/sizeof(char *))
+			value.intval = 0;
 		return sprintf(buf, "%s\n",
 			       power_supply_scope_text[value.intval]);
-	else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
+	} else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
 		return sprintf(buf, "%s\n", value.strval);
 
 	if (off == POWER_SUPPLY_PROP_CHARGE_COUNTER_EXT)
@@ -266,6 +301,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(charge_control_limit),
 	POWER_SUPPLY_ATTR(charge_control_limit_max),
 	POWER_SUPPLY_ATTR(input_current_limit),
+	POWER_SUPPLY_ATTR(input_current_now),
 	POWER_SUPPLY_ATTR(energy_full_design),
 	POWER_SUPPLY_ATTR(energy_empty_design),
 	POWER_SUPPLY_ATTR(energy_full),
@@ -294,6 +330,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(precharge_current),
 	POWER_SUPPLY_ATTR(charge_term_current),
 	POWER_SUPPLY_ATTR(calibrate),
+	POWER_SUPPLY_ATTR(bat_id),
 	/* Local extensions */
 	POWER_SUPPLY_ATTR(usb_hc),
 	POWER_SUPPLY_ATTR(usb_otg),

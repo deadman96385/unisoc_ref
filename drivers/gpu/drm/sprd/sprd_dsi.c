@@ -119,15 +119,19 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	sprd_dsi_resume(dsi);
 	sprd_dphy_resume(dsi->phy);
-
+#ifdef 	CONFIG_GOWIN_FPGA
 	sprd_dsi_lp_cmd_enable(dsi, true);
+#endif
 
 	if (dsi->panel) {
 		drm_panel_prepare(dsi->panel);
 		drm_panel_enable(dsi->panel);
-	}
+    }
 
 	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
+#ifdef 	CONFIG_GOWIN_FPGA
+    sprd_dsi_lp_cmd_enable(dsi, true);
+#endif
 	sprd_dsi_state_reset(dsi);
 
 	sprd_sharkl3_workaround(dsi);
@@ -163,12 +167,14 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 		return;
 	}
 
-	sprd_dpu_stop(dpu);
-	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
+    drm_panel_disable(dsi->panel);
+    sprd_dpu_stop(dpu);
+    sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
+#ifdef 	CONFIG_GOWIN_FPGA
 	sprd_dsi_lp_cmd_enable(dsi, true);
+#endif
 
 	if (dsi->panel) {
-		drm_panel_disable(dsi->panel);
 		if (dsi->phy->ctx.ulps_enable)
 			sprd_dphy_ulps_enter(dsi->phy);
 		drm_panel_unprepare(dsi->panel);
@@ -710,7 +716,7 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	if (!of_property_read_u32(np, "sprd,max-read-time", &tmp))
 		ctx->max_rd_time = tmp;
 	else
-		ctx->max_rd_time = 6000;
+		ctx->max_rd_time = 8000;
 
 	if (!of_property_read_u32(np, "sprd,int0_mask", &tmp))
 		ctx->int0_mask = tmp;

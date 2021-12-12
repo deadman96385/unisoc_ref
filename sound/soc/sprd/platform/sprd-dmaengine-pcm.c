@@ -813,6 +813,7 @@ static int sprd_pcm_request_dma_channel(
 				rtd->cookie[i] = 0;
 				rtd->params = NULL;
 				normal_dma_protect_spin_unlock(substream);
+				dmaengine_terminate_sync(temp_dma_chan);
 				dma_release_channel(temp_dma_chan);
 			}
 		}
@@ -1179,6 +1180,7 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 				rtd->dma_tx_des[i] = NULL;
 				rtd->cookie[i] = 0;
 				normal_dma_protect_spin_unlock(substream);
+				dmaengine_terminate_sync(temp_dma_chan);
 				dma_release_channel(temp_dma_chan);
 			}
 		}
@@ -1574,6 +1576,7 @@ static void pm_normal_dma_chan_release(struct sprd_runtime_data *rtd)
 			rtd->dma_tx_des[i] = NULL;
 			rtd->cookie[i] = 0;
 			spin_unlock(&pm_dma->pm_splk_dma_prot);
+			dmaengine_terminate_sync(temp_dma_chan);
 			dma_release_channel(temp_dma_chan);
 		} else
 			pr_info("%s i=%d has released\n", __func__, i);

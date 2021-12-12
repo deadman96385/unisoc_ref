@@ -512,12 +512,12 @@ static void hci_setup_link_policy(struct hci_request *req)
 
 	if (lmp_rswitch_capable(hdev))
 		link_policy |= HCI_LP_RSWITCH;
-	if (lmp_hold_capable(hdev))
-		link_policy |= HCI_LP_HOLD;
+	//if (lmp_hold_capable(hdev))
+		//link_policy |= HCI_LP_HOLD;
 	if (lmp_sniff_capable(hdev))
 		link_policy |= HCI_LP_SNIFF;
-	if (lmp_park_capable(hdev))
-		link_policy |= HCI_LP_PARK;
+	//if (lmp_park_capable(hdev))
+		//link_policy |= HCI_LP_PARK;
 
 	cp.policy = cpu_to_le16(link_policy);
 	hci_req_add(req, HCI_OP_WRITE_DEF_LINK_POLICY, sizeof(cp), &cp);
