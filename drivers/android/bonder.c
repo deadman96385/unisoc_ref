@@ -74,8 +74,8 @@
 
 #include <uapi/linux/android/binder.h>
 #include <uapi/linux/sched/types.h>
-#include "binder_alloc.h"
-#include "binder_trace.h"
+#include "bonder_alloc.h"
+#include "bonder_trace.h"
 
 static HLIST_HEAD(binder_deferred_list);
 static DEFINE_MUTEX(binder_deferred_lock);
@@ -140,7 +140,7 @@ static uint32_t binder_debug_mask = BINDER_DEBUG_USER_ERROR |
 	BINDER_DEBUG_FAILED_TRANSACTION | BINDER_DEBUG_DEAD_TRANSACTION;
 module_param_named(debug_mask, binder_debug_mask, uint, 0644);
 
-static char *binder_devices_param = CONFIG_ANDROID_BINDER_DEVICES;
+static char *binder_devices_param = "bonder,hwbonder,vndbonder";
 module_param_named(devices, binder_devices_param, charp, 0444);
 
 static DECLARE_WAIT_QUEUE_HEAD(binder_user_error_wait);
@@ -1208,7 +1208,7 @@ static void binder_do_set_priority(struct task_struct *task,
 			      task->pid, desired.prio,
 			      to_kernel_prio(policy, priority));
 
-	trace_binder_set_priority(task->tgid, task->pid, task->normal_prio,
+	trace_bonder_set_priority(task->tgid, task->pid, task->normal_prio,
 				  to_kernel_prio(policy, priority),
 				  desired.prio);
 
@@ -2231,7 +2231,7 @@ static size_t binder_get_object(struct binder_proc *proc,
 	if (offset > buffer->data_size || read_size < sizeof(*hdr) ||
 	    !IS_ALIGNED(offset, sizeof(u32)))
 		return 0;
-	binder_alloc_copy_from_buffer(&proc->alloc, object, buffer,
+	bonder_alloc_copy_from_buffer(&proc->alloc, object, buffer,
 				      offset, read_size);
 
 	/* Ok, now see if we read a complete object. */
@@ -2301,7 +2301,7 @@ static struct binder_buffer_object *binder_validate_ptr(
 		return NULL;
 
 	buffer_offset = start_offset + sizeof(binder_size_t) * index;
-	binder_alloc_copy_from_buffer(&proc->alloc, &object_offset,
+	bonder_alloc_copy_from_buffer(&proc->alloc, &object_offset,
 				      b, buffer_offset, sizeof(object_offset));
 	object_size = binder_get_object(proc, b, object_offset, object);
 	if (!object_size || object->hdr.type != BINDER_TYPE_PTR)
@@ -2383,7 +2383,7 @@ static bool binder_validate_fixup(struct binder_proc *proc,
 		last_min_offset = last_bbo->parent_offset + sizeof(uintptr_t);
 		buffer_offset = objects_start_offset +
 			sizeof(binder_size_t) * last_bbo->parent,
-		binder_alloc_copy_from_buffer(&proc->alloc, &last_obj_offset,
+		bonder_alloc_copy_from_buffer(&proc->alloc, &last_obj_offset,
 					      b, buffer_offset,
 					      sizeof(last_obj_offset));
 	}
@@ -2417,7 +2417,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 		struct binder_object object;
 		binder_size_t object_offset;
 
-		binder_alloc_copy_from_buffer(&proc->alloc, &object_offset,
+		bonder_alloc_copy_from_buffer(&proc->alloc, &object_offset,
 					      buffer, buffer_offset,
 					      sizeof(object_offset));
 		object_size = binder_get_object(proc, buffer,
@@ -2533,7 +2533,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 				binder_size_t offset = fda_offset +
 					fd_index * sizeof(fd);
 
-				binder_alloc_copy_from_buffer(&proc->alloc,
+				bonder_alloc_copy_from_buffer(&proc->alloc,
 							      &fd,
 							      buffer,
 							      offset,
@@ -2592,7 +2592,7 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 	fp->handle = rdata.desc;
 	fp->cookie = 0;
 
-	trace_binder_transaction_node_to_ref(t, node, &rdata);
+	trace_bonder_transaction_node_to_ref(t, node, &rdata);
 	binder_debug(BINDER_DEBUG_TRANSACTION,
 		     "        node %d u%016llx -> ref %d desc %d\n",
 		     node->debug_id, (u64)node->ptr,
@@ -2639,7 +2639,7 @@ static int binder_translate_handle(struct flat_binder_object *fp,
 					 0, NULL);
 		if (node->proc)
 			binder_inner_proc_unlock(node->proc);
-		trace_binder_transaction_ref_to_node(t, node, &src_rdata);
+		trace_bonder_transaction_ref_to_node(t, node, &src_rdata);
 		binder_debug(BINDER_DEBUG_TRANSACTION,
 			     "        ref %d desc %d -> node %d u%016llx\n",
 			     src_rdata.debug_id, src_rdata.desc, node->debug_id,
@@ -2658,7 +2658,7 @@ static int binder_translate_handle(struct flat_binder_object *fp,
 		fp->binder = 0;
 		fp->handle = dest_rdata.desc;
 		fp->cookie = 0;
-		trace_binder_transaction_ref_to_ref(t, node, &src_rdata,
+		trace_bonder_transaction_ref_to_ref(t, node, &src_rdata,
 						    &dest_rdata);
 		binder_debug(BINDER_DEBUG_TRANSACTION,
 			     "        ref %d desc %d -> ref %d desc %d (node %d)\n",
@@ -2715,7 +2715,7 @@ static int binder_translate_fd(int fd,
 		goto err_get_unused_fd;
 	}
 	task_fd_install(target_proc, target_fd, file);
-	trace_binder_transaction_fd(t, fd, target_fd);
+	trace_bonder_transaction_fd(t, fd, target_fd);
 	binder_debug(BINDER_DEBUG_TRANSACTION, "        fd %d -> %d\n",
 		     fd, target_fd);
 
@@ -2773,13 +2773,13 @@ static int binder_translate_fd_array(struct binder_fd_array_object *fda,
 
 		binder_size_t offset = fda_offset + fdi * sizeof(fd);
 
-		binder_alloc_copy_from_buffer(&target_proc->alloc,
+		bonder_alloc_copy_from_buffer(&target_proc->alloc,
 					      &fd, t->buffer,
 					      offset, sizeof(fd));
 		target_fd = binder_translate_fd(fd, t, thread, in_reply_to);
 		if (target_fd < 0)
 			goto err_translate_fd_failed;
-		binder_alloc_copy_to_buffer(&target_proc->alloc,
+		bonder_alloc_copy_to_buffer(&target_proc->alloc,
 					    t->buffer, offset,
 					    &target_fd, sizeof(fd));
 	}
@@ -2794,7 +2794,7 @@ err_translate_fd_failed:
 	for (fdi = 0; fdi < num_installed_fds; fdi++) {
 		u32 fd;
 		binder_size_t offset = fda_offset + fdi * sizeof(fd);
-		binder_alloc_copy_from_buffer(&target_proc->alloc,
+		bonder_alloc_copy_from_buffer(&target_proc->alloc,
 					      &fd, t->buffer,
 					      offset, sizeof(fd));
 		task_close_fd(target_proc, fd);
@@ -2848,7 +2848,7 @@ static int binder_fixup_parent(struct binder_transaction *t,
 	}
 	buffer_offset = bp->parent_offset +
 			(uintptr_t)parent->buffer - (uintptr_t)b->user_data;
-	binder_alloc_copy_to_buffer(&target_proc->alloc, b, buffer_offset,
+	bonder_alloc_copy_to_buffer(&target_proc->alloc, b, buffer_offset,
 				    &bp->buffer, sizeof(bp->buffer));
 
 	return 0;
@@ -3238,9 +3238,9 @@ static void binder_transaction(struct binder_proc *proc,
 		}
 	}
 
-	trace_binder_transaction(reply, t, target_node);
+	trace_bonder_transaction(reply, t, target_node);
 
-	t->buffer = binder_alloc_new_buf(&target_proc->alloc, tr->data_size,
+	t->buffer = bonder_alloc_new_buf(&target_proc->alloc, tr->data_size,
 		tr->offsets_size, extra_buffers_size,
 		!reply && (t->flags & TF_ONE_WAY));
 	if (IS_ERR(t->buffer)) {
@@ -3261,7 +3261,7 @@ static void binder_transaction(struct binder_proc *proc,
 				    ALIGN(secctx_sz, sizeof(u64));
 
 		t->security_ctx = (uintptr_t)t->buffer->user_data + buf_offset;
-		binder_alloc_copy_to_buffer(&target_proc->alloc,
+		bonder_alloc_copy_to_buffer(&target_proc->alloc,
 					    t->buffer, buf_offset,
 					    secctx, secctx_sz);
 		security_release_secctx(secctx, secctx_sz);
@@ -3270,9 +3270,9 @@ static void binder_transaction(struct binder_proc *proc,
 	t->buffer->debug_id = t->debug_id;
 	t->buffer->transaction = t;
 	t->buffer->target_node = target_node;
-	trace_binder_transaction_alloc_buf(t->buffer);
+	trace_bonder_transaction_alloc_buf(t->buffer);
 
-	if (binder_alloc_copy_user_to_buffer(
+	if (bonder_alloc_copy_user_to_buffer(
 				&target_proc->alloc,
 				t->buffer, 0,
 				(const void __user *)
@@ -3285,7 +3285,7 @@ static void binder_transaction(struct binder_proc *proc,
 		return_error_line = __LINE__;
 		goto err_copy_data_failed;
 	}
-	if (binder_alloc_copy_user_to_buffer(
+	if (bonder_alloc_copy_user_to_buffer(
 				&target_proc->alloc,
 				t->buffer,
 				ALIGN(tr->data_size, sizeof(void *)),
@@ -3330,7 +3330,7 @@ static void binder_transaction(struct binder_proc *proc,
 		struct binder_object object;
 		binder_size_t object_offset;
 
-		binder_alloc_copy_from_buffer(&target_proc->alloc,
+		bonder_alloc_copy_from_buffer(&target_proc->alloc,
 					      &object_offset,
 					      t->buffer,
 					      buffer_offset,
@@ -3364,7 +3364,7 @@ static void binder_transaction(struct binder_proc *proc,
 				return_error_line = __LINE__;
 				goto err_translate_failed;
 			}
-			binder_alloc_copy_to_buffer(&target_proc->alloc,
+			bonder_alloc_copy_to_buffer(&target_proc->alloc,
 						    t->buffer, object_offset,
 						    fp, sizeof(*fp));
 		} break;
@@ -3380,7 +3380,7 @@ static void binder_transaction(struct binder_proc *proc,
 				return_error_line = __LINE__;
 				goto err_translate_failed;
 			}
-			binder_alloc_copy_to_buffer(&target_proc->alloc,
+			bonder_alloc_copy_to_buffer(&target_proc->alloc,
 						    t->buffer, object_offset,
 						    fp, sizeof(*fp));
 		} break;
@@ -3398,7 +3398,7 @@ static void binder_transaction(struct binder_proc *proc,
 			}
 			fp->pad_binder = 0;
 			fp->fd = target_fd;
-			binder_alloc_copy_to_buffer(&target_proc->alloc,
+			bonder_alloc_copy_to_buffer(&target_proc->alloc,
 						    t->buffer, object_offset,
 						    fp, sizeof(*fp));
 		} break;
@@ -3462,7 +3462,7 @@ static void binder_transaction(struct binder_proc *proc,
 				return_error_line = __LINE__;
 				goto err_bad_offset;
 			}
-			if (binder_alloc_copy_user_to_buffer(
+			if (bonder_alloc_copy_user_to_buffer(
 						&target_proc->alloc,
 						t->buffer,
 						sg_buf_offset,
@@ -3494,7 +3494,7 @@ static void binder_transaction(struct binder_proc *proc,
 				return_error_line = __LINE__;
 				goto err_translate_failed;
 			}
-			binder_alloc_copy_to_buffer(&target_proc->alloc,
+			bonder_alloc_copy_to_buffer(&target_proc->alloc,
 						    t->buffer, object_offset,
 						    bp, sizeof(*bp));
 			last_fixup_obj_off = object_offset;
@@ -3576,14 +3576,14 @@ err_bad_object_type:
 err_bad_offset:
 err_bad_parent:
 err_copy_data_failed:
-	trace_binder_transaction_failed_buffer_release(t->buffer);
+	trace_bonder_transaction_failed_buffer_release(t->buffer);
 	binder_transaction_buffer_release(target_proc, t->buffer,
 					  buffer_offset, true);
 	if (target_node)
 		binder_dec_node_tmpref(target_node);
 	target_node = NULL;
 	t->buffer->transaction = NULL;
-	binder_alloc_free_buf(&target_proc->alloc, t->buffer);
+	bonder_alloc_free_buf(&target_proc->alloc, t->buffer);
 err_binder_alloc_buf_failed:
 err_bad_extra_size:
 	if (secctx)
@@ -3660,7 +3660,7 @@ static int binder_thread_write(struct binder_proc *proc,
 		if (get_user(cmd, (uint32_t __user *)ptr))
 			return -EFAULT;
 		ptr += sizeof(uint32_t);
-		trace_binder_command(cmd);
+		trace_bonder_command(cmd);
 		if (_IOC_NR(cmd) < ARRAY_SIZE(binder_stats.bc)) {
 			atomic_inc(&binder_stats.bc[_IOC_NR(cmd)]);
 			atomic_inc(&proc->stats.bc[_IOC_NR(cmd)]);
@@ -3812,7 +3812,7 @@ static int binder_thread_write(struct binder_proc *proc,
 				return -EFAULT;
 			ptr += sizeof(binder_uintptr_t);
 
-			buffer = binder_alloc_prepare_to_free(&proc->alloc,
+			buffer = bonder_alloc_prepare_to_free(&proc->alloc,
 							      data_ptr);
 			if (IS_ERR_OR_NULL(buffer)) {
 				if (PTR_ERR(buffer) == -EPERM) {
@@ -3859,9 +3859,9 @@ static int binder_thread_write(struct binder_proc *proc,
 				}
 				binder_node_inner_unlock(buf_node);
 			}
-			trace_binder_transaction_buffer_release(buffer);
+			trace_bonder_transaction_buffer_release(buffer);
 			binder_transaction_buffer_release(proc, buffer, 0, false);
-			binder_alloc_free_buf(&proc->alloc, buffer);
+			bonder_alloc_free_buf(&proc->alloc, buffer);
 			break;
 		}
 
@@ -4113,7 +4113,7 @@ static int binder_thread_write(struct binder_proc *proc,
 static void binder_stat_br(struct binder_proc *proc,
 			   struct binder_thread *thread, uint32_t cmd)
 {
-	trace_binder_return(cmd);
+	trace_bonder_return(cmd);
 	if (_IOC_NR(cmd) < ARRAY_SIZE(binder_stats.br)) {
 		atomic_inc(&binder_stats.br[_IOC_NR(cmd)]);
 		atomic_inc(&proc->stats.br[_IOC_NR(cmd)]);
@@ -4209,7 +4209,7 @@ retry:
 
 	thread->looper |= BINDER_LOOPER_STATE_WAITING;
 
-	trace_binder_wait_for_work(wait_for_proc_work,
+	trace_bonder_wait_for_work(wait_for_proc_work,
 				   !!thread->transaction_stack,
 				   !binder_worklist_empty(proc, &thread->todo));
 	if (wait_for_proc_work) {
@@ -4499,7 +4499,7 @@ retry:
 		}
 		ptr += trsize;
 
-		trace_binder_transaction_received(t);
+		trace_bonder_transaction_received(t);
 		binder_stat_br(proc, thread, cmd);
 		binder_debug(BINDER_DEBUG_TRANSACTION,
 			     "%d:%d %s %d %d:%d, cmd %d size %zd-%zd ptr %016llx-%016llx\n",
@@ -4674,7 +4674,7 @@ static void binder_free_proc(struct binder_proc *proc)
 {
 	BUG_ON(!list_empty(&proc->todo));
 	BUG_ON(!list_empty(&proc->delivered_death));
-	binder_alloc_deferred_release(&proc->alloc);
+	bonder_alloc_deferred_release(&proc->alloc);
 	put_task_struct(proc->tsk);
 	binder_stats_deleted(BINDER_STAT_PROC);
 	kfree(proc);
@@ -4829,7 +4829,7 @@ static int binder_ioctl_write_read(struct file *filp,
 					  bwr.write_buffer,
 					  bwr.write_size,
 					  &bwr.write_consumed);
-		trace_binder_write_done(ret);
+		trace_bonder_write_done(ret);
 		if (ret < 0) {
 			bwr.read_consumed = 0;
 			if (copy_to_user(ubuf, &bwr, sizeof(bwr)))
@@ -4842,7 +4842,7 @@ static int binder_ioctl_write_read(struct file *filp,
 					 bwr.read_size,
 					 &bwr.read_consumed,
 					 filp->f_flags & O_NONBLOCK);
-		trace_binder_read_done(ret);
+		trace_bonder_read_done(ret);
 		binder_inner_proc_lock(proc);
 		if (!binder_worklist_empty_ilocked(&proc->todo))
 			binder_wakeup_proc_ilocked(proc);
@@ -4986,9 +4986,9 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	/*pr_info("binder_ioctl: %d:%d %x %lx\n",
 			proc->pid, current->pid, cmd, arg);*/
 
-	binder_selftest_alloc(&proc->alloc);
+	bonder_selftest_alloc(&proc->alloc);
 
-	trace_binder_ioctl(cmd, arg);
+	trace_bonder_ioctl(cmd, arg);
 
 	ret = wait_event_interruptible(binder_user_error_wait, binder_stop_on_user_error < 2);
 	if (ret)
@@ -5105,7 +5105,7 @@ err:
 	if (ret && ret != -ERESTARTSYS)
 		pr_info("%d:%d ioctl %x %lx returned %d\n", proc->pid, current->pid, cmd, arg, ret);
 err_unlocked:
-	trace_binder_ioctl_done(ret);
+	trace_bonder_ioctl_done(ret);
 	return ret;
 }
 
@@ -5129,7 +5129,7 @@ static void binder_vma_close(struct vm_area_struct *vma)
 		     proc->pid, vma->vm_start, vma->vm_end,
 		     (vma->vm_end - vma->vm_start) / SZ_1K, vma->vm_flags,
 		     (unsigned long)pgprot_val(vma->vm_page_prot));
-	binder_alloc_vma_close(&proc->alloc);
+	bonder_alloc_vma_close(&proc->alloc);
 	binder_defer_work(proc, BINDER_DEFERRED_PUT_FILES);
 }
 
@@ -5173,7 +5173,7 @@ static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
 	vma->vm_ops = &binder_vm_ops;
 	vma->vm_private_data = proc;
 
-	ret = binder_alloc_mmap_handler(&proc->alloc, vma);
+	ret = bonder_alloc_mmap_handler(&proc->alloc, vma);
 	if (ret)
 		return ret;
 	mutex_lock(&proc->files_lock);
@@ -5215,7 +5215,7 @@ static int binder_open(struct inode *nodp, struct file *filp)
 	binder_dev = container_of(filp->private_data, struct binder_device,
 				  miscdev);
 	proc->context = &binder_dev->context;
-	binder_alloc_init(&proc->alloc);
+	bonder_alloc_init(&proc->alloc);
 
 	binder_stats_created(BINDER_STAT_PROC);
 	proc->pid = current->group_leader->pid;
@@ -5715,7 +5715,7 @@ static void print_binder_proc(struct seq_file *m,
 							    rb_node_desc));
 		binder_proc_unlock(proc);
 	}
-	binder_alloc_print_allocated(m, &proc->alloc);
+	bonder_alloc_print_allocated(m, &proc->alloc);
 	binder_inner_proc_lock(proc);
 	list_for_each_entry(w, &proc->todo, entry)
 		print_binder_work_ilocked(m, proc, "  ",
@@ -5871,10 +5871,10 @@ static void print_binder_proc_stats(struct seq_file *m,
 	binder_proc_unlock(proc);
 	seq_printf(m, "  refs: %d s %d w %d\n", count, strong, weak);
 
-	count = binder_alloc_get_allocated_count(&proc->alloc);
+	count = bonder_alloc_get_allocated_count(&proc->alloc);
 	seq_printf(m, "  buffers: %d\n", count);
 
-	binder_alloc_print_pages(m, &proc->alloc);
+	bonder_alloc_print_pages(m, &proc->alloc);
 
 	count = 0;
 	binder_inner_proc_lock(proc);
@@ -6072,7 +6072,7 @@ static int __init binder_init(void)
 	struct binder_device *device;
 	struct hlist_node *tmp;
 
-	ret = binder_alloc_shrinker_init();
+	ret = bonder_alloc_shrinker_init();
 	if (ret)
 		return ret;
 
@@ -6150,6 +6150,6 @@ err_alloc_device_names_failed:
 device_initcall(binder_init);
 
 #define CREATE_TRACE_POINTS
-#include "binder_trace.h"
+#include "bonder_trace.h"
 
 MODULE_LICENSE("GPL v2");
